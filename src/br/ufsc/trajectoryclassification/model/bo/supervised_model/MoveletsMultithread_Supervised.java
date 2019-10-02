@@ -394,6 +394,8 @@ public class MoveletsMultithread_Supervised {
 		/* STEP 4: IDENTIFY EQUAL CANDIDATES
 		 * */	
 
+		int[] attribute_usage = new int [dmbt.getDMBP().getNumberOfFeatures()]; // array of 5 ints
+		
 		for(ISubtrajectory candidate:orderedCandidates) {
 			
 			if(best_candidates.isEmpty())
@@ -412,14 +414,29 @@ public class MoveletsMultithread_Supervised {
 						}
 					
 				}
-				if(!equal)
+				if(!equal) {
 					best_candidates.add(candidate);
+					attribute_usage[candidate.getPointFeatures().length-1]++;
+				}
 			}
 				
 			
 		}
 		
+		int max=0;
+		int number_of_features =-1;
+		
+		for(int j=0; j<attribute_usage.length; j++) {
 			
+			if(attribute_usage[j]>max) {
+				max = attribute_usage[j];
+				number_of_features = j+1;
+			}
+			
+		}
+		
+		setMaxNumberOfFeatures(number_of_features);
+		System.out.println(maxNumberOfFeatures);
 		/* STEP 5: IDENTIFY THE TRAJECTORY POINTS THAT HAVE INTERESTING CONTENT
 		 * */	
 		Map<Integer,List<Integer>> trajectory_parts = Identify_Relevant_Trajectorty_Parts(trajectories_from_class, best_candidates);

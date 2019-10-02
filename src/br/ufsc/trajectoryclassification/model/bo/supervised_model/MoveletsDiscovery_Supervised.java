@@ -690,7 +690,8 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 		}
 		
 		List<ISubtrajectory> total_candidates = new ArrayList<>();
-		
+
+		Integer total_size = 0;
 		for(Pivot_Supervised pivot_set:supervised_pivots) {
 			
 			ITrajectory trajectory_ = pivot_set.getTrajectory();
@@ -706,7 +707,6 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 			//Start generating the candidates
 			List<ISubtrajectory> candidatesOfSizeOne = getCandidatesUsingPredefinedRanges(trajectory_, train, size, base, ranges_map);
 				
-			Integer total_size = 0;
 				
 			candidatesOfSizeOne.forEach(x -> AssesQuality(x, random));
 			candidates_prunned = MoveletsFilterAndRanker.getShapelets(candidatesOfSizeOne);
@@ -751,14 +751,9 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 			total_candidates.addAll(candidates_prunned);
 			
 		}
+		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Ranges: " + neighborhood_subtrajectories.size() + ". Number of Candidates: " + total_size + ". Limit Size: " + limit_size + ". Total of Movelets: " + total_candidates.size() + ". Max number of Features: " + maxNumberOfFeatures);
 		
-		if(trajectory.getTid()==129) {
-			System.out.println("o");
-		}
-		
-		
-		
-		return final_candidates;
+		return total_candidates;
 		
 	}
 	

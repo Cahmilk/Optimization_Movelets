@@ -219,7 +219,7 @@ public class MoveletsRunUnit_Supervised {
 		
 		String resultDirPath = "";
 		
-		resultDirPath = RESULT_DIR + "/MASTERMoveletsSupervised_WithPivots/" + DESCRIPTION_FILE_NAME;
+		resultDirPath = RESULT_DIR + "/MASTERMoveletsSupervised_WithPivots_And_AttributeFilter/" + DESCRIPTION_FILE_NAME;
 		
 		if(last_prunning)
 			resultDirPath = resultDirPath + "_With_Last_Prunning/";

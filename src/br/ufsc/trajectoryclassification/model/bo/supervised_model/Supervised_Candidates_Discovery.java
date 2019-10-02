@@ -46,7 +46,7 @@ public class Supervised_Candidates_Discovery implements Callable<Integer> {
 	
 	private boolean exploreDimensions;
 	
-	private int maxNumberOfFeatures = 2;
+	private int maxNumberOfFeatures = -1;
 	
 	private Random random;
 	
@@ -570,7 +570,7 @@ public class Supervised_Candidates_Discovery implements Callable<Integer> {
 		base =  null;
 		lastSize = null;
 		
-		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Candidates: " + total_size + ". Total of Movelets: " + candidates.size() + ". Max Size: " + maxSize+ ". Used Features: " + this.maxNumberOfFeatures);
+		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Candidates: " + total_size + ". Total of Movelets: " + candidates.size() + ". Max Size: " + maxSize+ ". Used Features: " + maxNumberOfFeatures);
 		
 		return candidates;
 	}
