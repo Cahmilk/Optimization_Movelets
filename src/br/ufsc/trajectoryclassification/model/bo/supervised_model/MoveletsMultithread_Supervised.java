@@ -58,11 +58,13 @@ public class MoveletsMultithread_Supervised {
 	private static String output = "numeric"; // Other values normalized and discretized
 	private static int maxNumberOfFeatures = -1;	
 	private String myclass = null;
+	private static boolean pivots = false;
+	private static Boolean attribute_limit = false;
 	
 	public MoveletsMultithread_Supervised(List<ITrajectory> trainForMovelets, List<ITrajectory> train, List<ITrajectory> test,
 			IDistanceMeasureForSubtrajectory dmbt, int minSize, int nthreads,
 			IQualityMeasure qualityMeasure, boolean cache, boolean exploreDimensions, String medium, String output,
-			String resultDirPath, boolean last_prunning) {
+			String resultDirPath, boolean last_prunning, boolean pivots, boolean attribute_limit) {
 		super();
 		this.trainForMovelets = trainForMovelets;
 		this.train = train;
@@ -76,6 +78,8 @@ public class MoveletsMultithread_Supervised {
 		this.medium = medium;
 		this.last_prunning = last_prunning;
 		this.output = output;
+		this.pivots = pivots;
+		this.attribute_limit = attribute_limit;
 		this.resultDirPath = resultDirPath;
 
 	}
@@ -108,7 +112,6 @@ public class MoveletsMultithread_Supervised {
 			}			
 		}
 		
-		System.out.println("Oi");
 		long endTime = System.nanoTime();
 
 		long duration = (endTime - startTime)/1000000;
@@ -283,7 +286,7 @@ public class MoveletsMultithread_Supervised {
 					
 				List<Integer> trajectory_part = trajectory_parts.get(trajectory.getTid());
 				
-				MoveletsDiscovery_Supervised shapeletsExtractor = new MoveletsDiscovery_Supervised(candidates, trajectory, trajectories, dmbt, (filterAndRank) ? qualityMeasure : null, minSize, maxSize, cache, exploreDimensions, maxNumberOfFeatures, trajectory_part);
+				MoveletsDiscovery_Supervised shapeletsExtractor = new MoveletsDiscovery_Supervised(candidates, trajectory, trajectories, dmbt, (filterAndRank) ? qualityMeasure : null, minSize, maxSize, cache, exploreDimensions, maxNumberOfFeatures, trajectory_part, pivots, attribute_limit);
 			
 				Future<Integer> result = executor.submit(shapeletsExtractor);
 
@@ -325,9 +328,10 @@ public class MoveletsMultithread_Supervised {
 			progressBar.update(progress, trajectories.size());
 						
 			for (ITrajectory trajectory : trajectories) {
-				
-				MoveletsDiscovery shapeletsExtractor = new MoveletsDiscovery(candidates, trajectory, trajectories, dmbt, (filterAndRank) ? qualityMeasure : null, minSize, maxSize, cache, exploreDimensions, maxNumberOfFeatures);
 
+				List<Integer> trajectory_part = trajectory_parts.get(trajectory.getTid());
+				MoveletsDiscovery_Supervised shapeletsExtractor = new MoveletsDiscovery_Supervised(candidates, trajectory, trajectories, dmbt, (filterAndRank) ? qualityMeasure : null, minSize, maxSize, cache, exploreDimensions, maxNumberOfFeatures, trajectory_part, pivots, attribute_limit);
+				
 				shapeletsExtractor.measureShapeletCollection();
 				
 				progressBar.update(progress++, trajectories.size());
@@ -423,20 +427,24 @@ public class MoveletsMultithread_Supervised {
 			
 		}
 		
-		int max=0;
-		int number_of_features =-1;
-		
-		for(int j=0; j<attribute_usage.length; j++) {
+		if(attribute_limit) {
 			
-			if(attribute_usage[j]>max) {
-				max = attribute_usage[j];
-				number_of_features = j+1;
+			int max=0;
+			int number_of_features =-1;
+			
+			for(int j=0; j<attribute_usage.length; j++) {
+				
+				if(attribute_usage[j]>max) {
+					max = attribute_usage[j];
+					number_of_features = j+1;
+				}
+				
 			}
 			
+			setMaxNumberOfFeatures(number_of_features);
+			
 		}
-		
-		setMaxNumberOfFeatures(number_of_features);
-		System.out.println(maxNumberOfFeatures);
+
 		/* STEP 5: IDENTIFY THE TRAJECTORY POINTS THAT HAVE INTERESTING CONTENT
 		 * */	
 		Map<Integer,List<Integer>> trajectory_parts = Identify_Relevant_Trajectorty_Parts(trajectories_from_class, best_candidates);

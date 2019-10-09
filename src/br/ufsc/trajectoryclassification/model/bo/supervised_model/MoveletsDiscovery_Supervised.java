@@ -55,13 +55,17 @@ public class MoveletsDiscovery_Supervised implements Callable<Integer> {
 	
 	private int limit_size = 0;
 
+	private static boolean pivots = false;
+	
+	private static Boolean attribute_limit = false;
+	
 	List<Integer> relevant_points_in_trajectory;
 	
 	private RankingAlgorithm rankingAlgorithm = new NaturalRanking();
 			
 	public MoveletsDiscovery_Supervised(List<ISubtrajectory> candidates, ITrajectory trajectory, List<ITrajectory> trajectories,
 			IDistanceMeasureForSubtrajectory dmbt, IQualityMeasure qualityMeasure, int minSize, int maxSize, boolean cache, boolean exploreDimensions,
-			int maxNumberOfFeatures, List<Integer> relevant_points_in_trajectory) {
+			int maxNumberOfFeatures, List<Integer> relevant_points_in_trajectory, boolean pivots, boolean attribute_limit) {
 		this.candidates = candidates;
 		this.trajectory = trajectory;
 		this.trajectories = trajectories;
@@ -72,7 +76,9 @@ public class MoveletsDiscovery_Supervised implements Callable<Integer> {
 		this.cache = cache;
 		this.exploreDimensions = exploreDimensions;
 		this.maxNumberOfFeatures = maxNumberOfFeatures;
-		this.relevant_points_in_trajectory = relevant_points_in_trajectory;
+		this.relevant_points_in_trajectory = relevant_points_in_trajectory;		
+		this.pivots = pivots;
+		this.attribute_limit = attribute_limit;
 
 		if (this.maxNumberOfFeatures < 1 || this.maxNumberOfFeatures > dmbt.getDMBP().getNumberOfFeatures())
 			this.maxNumberOfFeatures = dmbt.getDMBP().getNumberOfFeatures();
@@ -95,8 +101,12 @@ public class MoveletsDiscovery_Supervised implements Callable<Integer> {
 		this.random = new Random(trajectory.getTid());
 		
 		if(!this.relevant_points_in_trajectory.isEmpty()) {
-			//candidates = SupervisedMoveletsDiscovery_With_Log(trajectory, trajectories, minSize, maxSize, random);
-			candidates = SupervisedMoveletsDiscovery_with_Pivots(trajectory, trajectories, minSize, maxSize, random);
+			if(pivots && maxSize!=-3)
+				candidates = SupervisedMoveletsDiscovery_with_Pivots(trajectory, trajectories, minSize, maxSize, random);
+			else if(maxSize==-3)
+				candidates = SupervisedMoveletsDiscovery_With_Log(trajectory, trajectories, minSize, maxSize, random);
+			else
+				candidates = SupervisedMoveletsDiscovery(trajectory, trajectories, minSize, maxSize, random);
 		}
 
 		for (ISubtrajectory candidate : candidates) {
@@ -621,7 +631,7 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 		}
 
 
-		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Ranges: " + neighborhood_subtrajectories.size() + ". Number of Candidates: " + total_size + ". Limit Size: " + limit_size + ". Total of Movelets: " + final_candidates.size());
+		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Ranges: " + neighborhood_subtrajectories.size() + ". Number of Candidates: " + total_size + ". Limit Size: " + limit_size + ". Total of Movelets: " + final_candidates.size() + ". Max number of Features: " + maxNumberOfFeatures);
 		
 		base_cases = null;
 		return final_candidates;
@@ -692,8 +702,12 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 		List<ISubtrajectory> total_candidates = new ArrayList<>();
 
 		Integer total_size = 0;
+		int local_limit_size = 0;
+		int higher_local_limit_size = 0;
+		
 		for(Pivot_Supervised pivot_set:supervised_pivots) {
 			
+			local_limit_size = 0;
 			ITrajectory trajectory_ = pivot_set.getTrajectory();
 			List<ISubtrajectory> candidates_prunned = new ArrayList<>();
 			
@@ -701,6 +715,14 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 			
 			//Get all the Neighbourhoods for each trajetory part
 			Map<Integer,List<Range>> ranges_map = getRangesUsingNeighbourhood(trajectory_, train, base, pivot_set.getBestPoints());
+			
+			for(Integer key : ranges_map.keySet()) {
+				if(local_limit_size < key)
+					local_limit_size = key;
+			}
+
+			if(local_limit_size>higher_local_limit_size)
+				higher_local_limit_size = local_limit_size;
 			
 			int size = 1;
 			
@@ -718,7 +740,7 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 			
 			/* Tratar o resto dos tamanhos 
 			 * */
-			for (size = 2; size <= limit_size; size++) {
+			for (size = 2; size <= local_limit_size; size++) {
 		
 				/* Precompute de distance matrix
 				 * */
@@ -751,7 +773,7 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 			total_candidates.addAll(candidates_prunned);
 			
 		}
-		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Ranges: " + neighborhood_subtrajectories.size() + ". Number of Candidates: " + total_size + ". Limit Size: " + limit_size + ". Total of Movelets: " + total_candidates.size() + ". Max number of Features: " + maxNumberOfFeatures);
+		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Ranges: " + neighborhood_subtrajectories.size() + ". Number of Candidates: " + total_size + ". Higher limit Size: " + higher_local_limit_size + ". Total of Movelets: " + total_candidates.size() + ". Max number of Features: " + maxNumberOfFeatures);
 		
 		return total_candidates;
 		
@@ -775,7 +797,7 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 
 		List<ISubtrajectory> final_candidates = new ArrayList<>();
 		//FOR EACH BASE CASE, EXTRACT THE MOVELETS		
-		//DO NOT WURPASS THE SIZE LIMIT OF LOG
+		//DO NOT SURPASS THE SIZE LIMIT OF LOG
 		int global_maxSize = (int) Math.ceil(Math.log(trajectory.getData().size()))+1;
 
 		int higher_local_size = 0;
@@ -835,7 +857,7 @@ private List<ISubtrajectory> getCandidatesFromTraj(ITrajectory trajectory, List<
 		}
 
 
-		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Ranges: " + neighborhood_subtrajectories.size() + ". Larger Range:" + higher_local_size + ". Number of Candidates: " + total_size + ". Limit Size: " + global_maxSize + ". Total of Movelets: " + final_candidates.size());
+		System.out.println("Trajectory: " + trajectory.getTid() + ". Trajectory Size: " + trajectory.getData().size() + ". Number of Ranges: " + neighborhood_subtrajectories.size() + ". Number of Candidates: " + total_size + ". Limit Size: " + global_maxSize + ". Total of Movelets: " + final_candidates.size()+ ". Max number of Features: " + maxNumberOfFeatures);
 		
 		base_cases = null;
 		return final_candidates;

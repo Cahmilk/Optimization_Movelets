@@ -53,7 +53,6 @@ public class MoveletsRunUnit_Supervised {
 	private static String PIVOTS_FILE = null;	
 	private static int nthreads = 1;
 	private static int minSize = 2;
-	private static boolean pivots = false;
 	private static int maxSize = -1; // unlimited maxSize
 	private static String strQualityMeasure = "LSP"; 	
 	private static boolean cache = true;
@@ -68,6 +67,8 @@ public class MoveletsRunUnit_Supervised {
 	private static boolean lowMemory = false;
 	private static int pivot_porcentage=10;
 	private static Boolean only_pivots = false;
+	private static boolean pivots = false;
+	private static Boolean attribute_limit = false;
 	
 	public static void configure(String[] args) {
 
@@ -95,6 +96,9 @@ public class MoveletsRunUnit_Supervised {
 				break;
 			case "-Ms":
 				maxSize = Integer.valueOf(value);
+				break;			
+			case "-Al":
+				attribute_limit = Boolean.valueOf(value);	
 				break;
 			case "-q":
 				strQualityMeasure = value;
@@ -148,17 +152,16 @@ public class MoveletsRunUnit_Supervised {
 	public static String showConfiguration() {
 
 		String str = new String();
+
+		str += "Starting running Supervised MASTERMovelets ";
 		
 		if(pivots)
-			str += "Starting running Movelet_pivots extractor (10%) " + System.getProperty("line.separator");
+			str += "with Pivots" + System.getProperty("line.separator");
 		else if(maxSize==-3)
-			str += "Starting running MASTERMovelets_Log extractor " + System.getProperty("line.separator");
-		else
-			str += "Starting running MASTERMovelets extractor " + System.getProperty("line.separator");
+			str += "with Log" + System.getProperty("line.separator");
 		
-		if (PIVOTS_FILE != null)
-			str += "Getting pivots from outside file:" + PIVOTS_FILE + System.getProperty("line.separator");
-		
+		str += System.getProperty("line.separator")
+				;
 		str += "Configurations:" + System.getProperty("line.separator");
 
 		str += "\tDatasets directory:	    " + CURRENT_DIR + System.getProperty("line.separator");
@@ -186,9 +189,14 @@ public class MoveletsRunUnit_Supervised {
 		str += "\tOutput:   " + output + System.getProperty("line.separator");
 		
 		if(last_prunning)
-			str += "WITH LAST PRUNNING" + System.getProperty("line.separator");
+			str += "\tWITH LAST PRUNNING" + System.getProperty("line.separator");
 		else
-			str += "WITHOUT LAST PRUNNING" + System.getProperty("line.separator");
+			str += "\tWITHOUT LAST PRUNNING" + System.getProperty("line.separator");
+
+		if(attribute_limit)
+			str += "\tWITH ATTRIBUTE LIMITATION" + System.getProperty("line.separator");
+		else
+			str += "\tWITHOUT ATTRIBUTE LIMITATION" + System.getProperty("line.separator");
 		
 		return str;
 
@@ -219,12 +227,22 @@ public class MoveletsRunUnit_Supervised {
 		
 		String resultDirPath = "";
 		
-		resultDirPath = RESULT_DIR + "/MASTERMoveletsSupervised_WithPivots_And_AttributeFilter/" + DESCRIPTION_FILE_NAME;
+		resultDirPath = RESULT_DIR + "/MASTERMoveletsSupervised/" + DESCRIPTION_FILE_NAME;
+
+		if(pivots)
+			resultDirPath = resultDirPath + "_WithPivot/";
+		else if(maxSize==-3)
+			resultDirPath = resultDirPath + "_WithLog/";
 		
 		if(last_prunning)
-			resultDirPath = resultDirPath + "_With_Last_Prunning/";
+			resultDirPath = resultDirPath + "_With_LastPrunning/";
 		else
-			resultDirPath = resultDirPath + "_Witout_Last_Prunning/";
+			resultDirPath = resultDirPath + "_Witout_LastPrunning/";
+		
+		if(attribute_limit)
+			resultDirPath = resultDirPath + "_With_AttributeLimit/";
+		else
+			resultDirPath = resultDirPath + "_Without_AttributeLimit/";
 
 		
 		String trainDirPath = CURRENT_DIR + "/train";
@@ -286,7 +304,7 @@ public class MoveletsRunUnit_Supervised {
 				
 				MoveletsMultithread_Supervised analysis = new MoveletsMultithread_Supervised(
 						trainForMovelets, train, test, dms, minSize, nthreads, qualityMeasure, cache, exploreDimensions, medium, output, 
-						resultDirPath + myclass + "/", last_prunning);			
+						resultDirPath + myclass + "/", last_prunning, pivots, attribute_limit);			
 				
 				train.forEach(e ->  e.getFeatures().clear());
 				train.forEach(e ->  e.getAttributes().clear());
